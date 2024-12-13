@@ -36,20 +36,26 @@ class ModelSplitor():
     def _modify_fc(self, num_classes):
         if "resnet" in self.model_name:
             self.model.fc = nn.Linear(self.model.fc.in_features, num_classes)
+            self.model.avgpool = nn.Sequential(nn.AdaptiveAvgPool2d(output_size=1),
+                        nn.Flatten())
         else:
-            self.model.classfiyer = nn.Linear(self.model.classifier[6].in_features, num_classes) # 4096 -> num_classes
+            self.model.avgpool = nn.Sequential(self.model.avgpool, nn.Flatten())
+            self.model.classifier.append(nn.Linear(1000, num_classes)) 
 
-    def split_model(self, split_pos):
-        statistic = []
+    def get_availabel_split(self):
         split_sign = SPLIT_SIGN[self.model_type]
+        statistic = []
         for idx, layer in enumerate(self.model.children()):
             if type(layer) == split_sign:
                 statistic.append(idx)
         statistic.append(statistic[-1]+1)
+        return statistic
+    
+    def split_model(self, split_pos):
+        statistic = self.get_availabel_split()
         if split_pos > len(statistic):
-            raise ValueError("split_pos is out of range")
-        else:
-            split_pos = statistic[split_pos]
+            raise ValueError(f"split_pos should be less than {len(statistic)}")
+        split_pos = statistic[split_pos]
         bottom_model = nn.Sequential(*list(self.model.children())[:split_pos])
         top_model = nn.Sequential(*list(self.model.children())[split_pos:])
         return bottom_model, top_model
