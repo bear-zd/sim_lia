@@ -24,6 +24,8 @@ def init():
     args.add_argument("--print_to_stdout", action="store_true")
     args.add_argument("--log", type=str, default="logs")
     args.add_argument("--seed", type=int, default=42)
+    args.add_argument("--gpu", type=int, default=-1)
+    args.add_argument("--save", type=str, default="save")
 
     args = args.parse_args()
     if args.log is None or args.print_to_stdout:
@@ -32,7 +34,9 @@ def init():
         os.makedirs(dir_name, exist_ok=True)
         if not args.print_to_stdout:
             sys.stdout = open(os.path.join(dir_name, "logs.txt"), "wt")
+    args.device = torch.device(f"cuda:{args.gpu}" if torch.cuda.is_available() and args.gpu != -1 else "cpu")
     set_random_seed(args.seed)
+    return args
 
 
 def set_random_seed(seed):
@@ -52,13 +56,31 @@ def main(args):
     split_poses = [args.split_pos] if args.split_pos is not None else model.get_availabel_split()
     for split_pos in split_poses:
         bottom_model, top_model = model.split_model(split_pos)
-        lia_pipelien = SIM_LIA(bottom_model, top_model, train_loader, test_loader, args.epoch)
+        lia_pipeline = SIM_LIA(bottom_model, top_model, train_loader, test_loader, args.epoch, args.device)
+        train_status = False
+        if args.save is not None:
+            save_dir = os.path.join(args.save, f"model_{split_pos}")
+            if os.path.exists(save_dir):
+                train_status = True
+                lia_pipeline.load_model(save_dir)
+            else:
+                train_status = False
+                os.makedirs(save_dir, exist_ok=True)
+        if train_status == False:
+            lia_pipeline.train()
+        collect_data, collect_label, known_data, known_label = lia_pipeline.extract_feature(args.what)
+        if args.save is not None:
+            lia_pipeline.save_model(os.path.join(args.save, f"model_{split_pos}"))
+            np.save(os.path.join(save_dir, "collect_data.npy"), collect_data)
+            np.save(os.path.join(save_dir, "collect_label.npy"), collect_label)
+            np.save(os.path.join(save_dir, "known_data.npy"), known_data)
+            np.save(os.path.join(save_dir, "known_label.npy"), known_label)
+
+        acc = lia_pipeline.attack(collect_data, collect_label, known_data, known_label, args.measure)
+        print(f"split_pos {split_pos} acc: {acc}")
+
         
     
-    
-
-
-
 
 if __name__ == "__main__":
     args = init()

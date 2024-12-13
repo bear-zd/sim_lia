@@ -3,3 +3,6 @@ __pycache__
 test.ipynb
 logs
 data
+save
+# keep .gitkeep dir
+!.gitkeep
