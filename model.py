@@ -14,12 +14,20 @@ SPLIT_SIGN = {
     "vgg": torch.nn.MaxPool2d
 }
 
+AVAILABLE_POS = {
+    "resnet18": [4, 5, 6, 7, 8, 9]
+}
+
+
 class ModelSplitor():
     def __init__(self, model_name, num_classes):
-        self.model = MODELS[model_name](pretrained=True)
+        
         self.model_name = model_name
         self.model_type = "resnet" if "resnet" in model_name else "vgg"
-        self._modify_fc(num_classes)
+        self.num_classes = num_classes
+
+    def preprocess(self):
+        self._modify_fc(self.num_classes)
         if self.model_type == "vgg":
             self._preproccess_vgg()
 
@@ -42,7 +50,7 @@ class ModelSplitor():
             self.model.avgpool = nn.Sequential(self.model.avgpool, nn.Flatten())
             self.model.classifier.append(nn.Linear(1000, num_classes)) 
 
-    def get_availabel_split(self):
+    def _get_available_split(self):
         split_sign = SPLIT_SIGN[self.model_type]
         statistic = []
         for idx, layer in enumerate(self.model.children()):
@@ -51,8 +59,13 @@ class ModelSplitor():
         statistic.append(statistic[-1]+1)
         return statistic
     
+    def get_available_split(self):
+        return AVAILABLE_POS[self.model_name]
+    
     def split_model(self, split_pos):
-        statistic = self.get_availabel_split()
+        self.model = MODELS[self.model_name](pretrained=True)
+        self.preprocess()
+        statistic = self.get_available_split()
         if split_pos > len(statistic):
             raise ValueError(f"split_pos should be less than {len(statistic)}")
         split_pos = statistic[split_pos]

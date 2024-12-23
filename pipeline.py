@@ -12,8 +12,6 @@ class SIM_LIA():
         self.test_loader = test_loader
         self.num_epoch = num_epoch
         self.optimizer = torch.optim.Adam(list(self.top_model.parameters())+list(self.bottom_model.parameters()), lr=0.0002)
-        # epoch_steps = len(self.train_loader)
-        # self.lr_schedular = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=10, gamma=0.1)
         self.loss_fn = nn.CrossEntropyLoss()
         self.device = device
         

@@ -7,15 +7,16 @@ import numpy as np
 import torch
 import os
 import sys
+from typing import Optional
 
 
 def init():
     args = argparse.ArgumentParser()
     # basic train
-    args.add_argument("--dataset", type=str, default="cifar10")
-    args.add_argument("--model", type=str, default="resnet18")
-    args.add_argument("--batch_size", type=int, default=128)
-    args.add_argument("--epoch", type=int, default=10)
+    args.add_argument("--dataset", type=str, default="cifar10", choices=["cifar10", "cifar100", "stl10", ])
+    args.add_argument("--model", type=str, default="resnet18", choices=["resnet18", "resnet34", "resnet50", "vgg19"])
+    args.add_argument("--batch_size", type=int, default=64)
+    args.add_argument("--epoch", type=int, default=30)
     # paper method
     args.add_argument("--what", type=str, choices=["smashed", "grad"])
     args.add_argument("--measure", type=str, choices=["cosine", "euclidean", "k-means"])
@@ -24,7 +25,7 @@ def init():
     args.add_argument("--print_to_stdout", action="store_true")
     args.add_argument("--log", type=str, default="logs")
     args.add_argument("--seed", type=int, default=42)
-    args.add_argument("--gpu", type=int, default=-1)
+    args.add_argument("--gpu", type=Optional[int], default=0)
     args.add_argument("--save", action="store_true")
 
     args = args.parse_args()
@@ -53,8 +54,10 @@ def main(args):
     num_classes = data_builder.get_num_classes()
 
     model = ModelSplitor(args.model, num_classes)
-    split_poses = [args.split_pos] if args.split_pos is not None else model.get_availabel_split()
-    for split_pos in split_poses:
+    split_poses = [args.split_pos] if args.split_pos is not None else model.get_available_split()
+    if args.split_pos is None:
+        print("Model available split positions: ", split_poses)
+    for split_pos in range(len(split_poses)):
         bottom_model, top_model = model.split_model(split_pos)
         lia_pipeline = SIM_LIA(bottom_model, top_model, train_loader, test_loader, args.epoch, args.device)
         if args.save:
