@@ -1,5 +1,4 @@
 import numpy as np
-<<<<<<< HEAD
 from sklearn.cluster import KMeans
 from scipy.optimize import linear_sum_assignment
 import sklearn.preprocessing as preprocessing
@@ -9,34 +8,19 @@ def cosine_distance(x: np.array, y: np.array):
 
 def euclidean_distance(x: np.array, y: np.array):
     return np.linalg.norm(x - y)
-=======
-from tqdm import tqdm
-cosine_v = lambda x, ly: [ np.dot(x, y)/ (np.sqrt(np.dot(x, x)) * np.sqrt(np.dot(y, y))) for y in ly]
-euc_v = lambda x, ly: [np.linalg.norm(x - y) for y in ly]
->>>>>>> 4f011b30d2101283ac5dcaaf0933820e9182bc04
 
 def distance_based(measure="cosine"):
     def distance_attack(collect_data: np.array, known_data: np.array, known_label: dict):
         collect_data = preprocessing.normalize(collect_data)
         known_data = preprocessing.normalize(known_data)
         if measure == "cosine":
-<<<<<<< HEAD
             similarity = cosine_distance
-=======
-            similarity = cosine_v
->>>>>>> 4f011b30d2101283ac5dcaaf0933820e9182bc04
         else:
-            similarity = euc_v
+            similarity = euclidean_distance
         collect_label = []
-<<<<<<< HEAD
         for i in range(collect_data.shape[0]):
             sim = [similarity(collect_data[i], known_data[j]) for j in range(known_data.shape[0])]
             collect_label.append(known_label[np.argmin(sim)])
-=======
-        for i in tqdm(range(collect_data.shape[0])):
-            sim = similarity(collect_data[i], known_data)
-            collect_label.append(known_label[np.argmax(sim)])
->>>>>>> 4f011b30d2101283ac5dcaaf0933820e9182bc04
         return np.array(collect_label)
     return distance_attack
 
